@@ -1,7 +1,9 @@
 //  OpenShift sample Node application
 var express = require('express'),
     app     = express(),
-    morgan  = require('morgan');
+    morgan  = require('morgan'),
+    request = require('request'),
+    btoa = require('btoa');
     
 Object.assign=require('object-assign')
 
@@ -92,6 +94,82 @@ app.get('/', function (req, res) {
   } else {
     res.render('index.html', { pageCountMessage : null});
   }
+});
+
+
+function captionImage(imageData) {
+    return new Promise((resolve, reject) => {
+
+    var boundary = 'xxxxxxxxxxxxxxxxxxxxxx';
+    var data = "--" + boundary + "\r\n";
+    data += imageData;
+    var payload = Buffer.from(data, "utf8");
+    
+var requestSettings = {
+    method: 'POST',
+    //url: 'http://httpbin.org/post',
+    url: 'http://max-image-caption-generator.max.us-south.containers.appdomain.cloud/model/predict',
+    headers: {'User-Agent': 'node/1.0', 'Accept': "application/json"},
+    //formData: {image: imageData}
+    //formData: {image: {value:imageData, options: {filename: "abcd.jpg"}}}
+    formData: {image: {value:imageData, options: {filename: "abcd.jpg", contentType: 'image/jpeg'}}}
+    // BADformData: {image: {value:imageData}}
+};
+        request(requestSettings, (error, response, body) => {
+            if (error) reject(error);
+            if (response.statusCode != 200) {
+                reject('Invalid status code <' + response.statusCode + '>');
+            }
+            resolve(body);
+        });
+    });
+}
+
+function downloadImage(url) {
+    return new Promise((resolve, reject) => {
+var requestSettings = {
+    method: 'GET',
+    url: url,
+    encoding: null
+};
+        request(requestSettings, (error, response, body) => {
+            if (error) reject(error);
+            if (response.statusCode != 200) {
+                reject('Invalid status code <' + response.statusCode + '>');
+            }
+            console.log("DDD_DOWNLOAD_GOT");
+            console.log(typeof(body));
+            resolve(body);
+        });
+    });
+}
+
+async function demoPage(req, res) {
+    console.log("DDD_DEMOPAGE_S");
+    try {
+        var imageDataBinary = await downloadImage('https://picsum.photos/200/300')
+        //var imageDataBinary = await downloadImage('https://picsum.photos/id/218/200/300')
+        var b64encoded = btoa(String.fromCharCode.apply(null, imageDataBinary));
+        var imageData = "data:image/jpeg;base64," + b64encoded;
+
+        console.log("DDD_DEMOPAGE_GET");
+        console.log(typeof(imageData));
+        var captions = await captionImage(imageDataBinary);
+        console.log("DDD_CAPTION_GOT_WAITE");
+        console.log(captions)
+        res.render('demo.html', {'imageData': imageData, 'captionData':captions });
+        console.log("DDD_DEMOPAGE_E");
+    } catch (error) {
+        console.error('ERROR:');
+        console.error(error);
+    }
+}
+
+
+app.get('/demo', function (req, res) {
+    console.log("DDD_DEMO_S");
+    demoPage(req, res);
+    console.log("DDD_DEMO_E");
 });
 
 app.get('/pagecount', function (req, res) {
