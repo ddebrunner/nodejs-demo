@@ -12,8 +12,8 @@
     "mongodb": "^2.1.16",
     "morgan": "^1.7.0",
     "object-assign":"4.1.0",
-    "request":"2.88.0",
-    "btoa":"1.2.1",
+    "request":"^2.88.0",
+    "btoa":"^1.2.1"
   },
   "engine": {
     "node": "*",
